@@ -2,7 +2,8 @@ package who.brianrok.pipedprocess.dataqueue;
 
 import who.brianrok.pipedprocess.exception.DataQueueException;
 
-import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Interface of data queue manager
@@ -31,7 +32,7 @@ public interface IDataQueueManager {
      * @param queueName Name of queue
      * @throws DataQueueException When the queue does not exists
      */
-    void getDataQueue(String queueName) throws DataQueueException;
+    IPipedProcessDataQueue<?> getDataQueue(String queueName) throws DataQueueException;
 
     /**
      * Remove a finished queue
@@ -44,5 +45,5 @@ public interface IDataQueueManager {
      * Get all names of registered queues
      * @return All registered queue names
      */
-    List<String> getAllQueueNames();
+    Set<String> getAllQueueNames();
 }
