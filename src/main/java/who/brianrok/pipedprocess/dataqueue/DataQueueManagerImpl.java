@@ -11,6 +11,10 @@ import java.util.Set;
  */
 public class DataQueueManagerImpl implements IDataQueueManager {
 
+    private static final String REGISTER = "register";
+    private static final String GET = "get";
+    private static final String REMOVE = "remove";
+
     private final Map<String, IPipedProcessDataQueue> dataQueues = new HashMap<>();
 
     @Override
@@ -22,7 +26,7 @@ public class DataQueueManagerImpl implements IDataQueueManager {
     public void registerDataQueue(String queueName, Class<?> elemClass, int capacity) throws DataQueueException {
         // Queue with this name should not exists
         synchronized (dataQueues) {
-            validateDataQueueExistent(queueName, false);
+            validateDataQueueExistent(queueName, REGISTER, false);
             dataQueues.put(queueName, new PipedProcessDataQueueImpl(elemClass, capacity));
         }
     }
@@ -30,7 +34,7 @@ public class DataQueueManagerImpl implements IDataQueueManager {
     @Override
     public IPipedProcessDataQueue getDataQueue(String queueName) throws DataQueueException {
         synchronized (dataQueues) {
-            validateDataQueueExistent(queueName, true);
+            validateDataQueueExistent(queueName, GET, true);
             return dataQueues.get(queueName);
         }
     }
@@ -38,7 +42,7 @@ public class DataQueueManagerImpl implements IDataQueueManager {
     @Override
     public void removeDataQueue(String queueName) throws DataQueueException {
         synchronized (dataQueues) {
-            validateDataQueueExistent(queueName, true);
+            validateDataQueueExistent(queueName, REMOVE, true);
             if (!getDataQueue(queueName).isFinished()) {
                 throw new DataQueueException();
             }
@@ -53,10 +57,11 @@ public class DataQueueManagerImpl implements IDataQueueManager {
         }
     }
 
-    private void validateDataQueueExistent(String queueName, boolean shouldExists) throws DataQueueException {
+    private void validateDataQueueExistent(String queueName, String op, boolean shouldExists) throws DataQueueException {
         boolean existent = dataQueues.containsKey(queueName);
         if (existent != shouldExists) {
-            throw new DataQueueException();
+            throw new DataQueueException(String.format("Existent of queue %s should be %b for operation %s", queueName,
+                    shouldExists, op));
         }
     }
 }

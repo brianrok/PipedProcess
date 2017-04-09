@@ -1,5 +1,7 @@
 package who.brianrok.pipedprocess.dataqueue;
 
+import who.brianrok.pipedprocess.exception.DataQueueException;
+
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -19,9 +21,10 @@ public class PipedProcessDataQueueImpl implements IPipedProcessDataQueue {
 
     @Override
     public void put(Object elem) throws InterruptedException {
-        if (elemClass.isAssignableFrom(elem.getClass())) {
-            queue.put(Optional.of(elem));
+        if (!elemClass.isAssignableFrom(elem.getClass())) {
+            throw new DataQueueException("Put unsupported data to data queue!");
         }
+        queue.put(Optional.of(elem));
     }
 
     @Override
