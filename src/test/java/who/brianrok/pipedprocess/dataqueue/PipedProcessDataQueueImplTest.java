@@ -8,7 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 public class PipedProcessDataQueueImplTest {
 
-    private IPipedProcessDataQueue<String> queue = new PipedProcessDataQueueImpl<>(10);
+    private IPipedProcessDataQueue queue = new PipedProcessDataQueueImpl(String.class, 10);
 
     @Test
     public void testOperation() throws InterruptedException {

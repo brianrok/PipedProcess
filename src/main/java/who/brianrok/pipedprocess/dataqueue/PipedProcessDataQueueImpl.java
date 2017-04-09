@@ -7,23 +7,27 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Implementation of IPipedProcessDataQueue
  */
-public class PipedProcessDataQueueImpl<E> implements IPipedProcessDataQueue<E> {
+public class PipedProcessDataQueueImpl implements IPipedProcessDataQueue {
 
-    private BlockingQueue<Optional<E>> queue;
+    private Class<?> elemClass;
+    private BlockingQueue<Optional<?>> queue;
 
-    public PipedProcessDataQueueImpl(int capacity) {
+    PipedProcessDataQueueImpl(Class elemClass, int capacity) {
+        this.elemClass = elemClass;
         queue = new LinkedBlockingQueue<>(capacity);
     }
 
     @Override
-    public void put(E elem) throws InterruptedException {
-        queue.put(Optional.of(elem));
+    public void put(Object elem) throws InterruptedException {
+        if (elemClass.isAssignableFrom(elem.getClass())) {
+            queue.put(Optional.of(elem));
+        }
     }
 
     @Override
-    public E take() throws InterruptedException {
-        Optional<E> elemOptional = queue.take();
-        return elemOptional.orElse(null);
+    public Object take() throws InterruptedException {
+        Optional<?> elemOptional = queue.take();
+        return elemClass.cast(elemOptional.orElse(null));
     }
 
     @Override
@@ -38,6 +42,8 @@ public class PipedProcessDataQueueImpl<E> implements IPipedProcessDataQueue<E> {
 
     @Override
     public boolean isFinished() {
-        return queue.size() == 1 && !queue.peek().isPresent();
+        synchronized (this) {
+            return queue.size() == 1 && !queue.peek().isPresent();
+        }
     }
 }

@@ -1,24 +1,25 @@
 package who.brianrok.pipedprocess.dataqueue;
 
+import java.util.Optional;
+
 /**
  * Data Queue for piped process
  */
-@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-public interface IPipedProcessDataQueue<E> {
+public interface IPipedProcessDataQueue {
 
     /**
      * Put an element to data queue
      * @param elem Element to put to queue
      * @throws InterruptedException
      */
-    void put(E elem) throws InterruptedException;
+    void put(Object elem) throws InterruptedException;
 
     /**
      * Get an element from data queue
      * @return First element in the queue
      * @throws InterruptedException
      */
-    E take() throws InterruptedException;
+    Object take() throws InterruptedException;
 
     /**
      * Get the remaining capacity of the queue

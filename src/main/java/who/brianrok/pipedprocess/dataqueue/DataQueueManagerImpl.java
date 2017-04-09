@@ -11,21 +11,21 @@ import java.util.Set;
  */
 public class DataQueueManagerImpl implements IDataQueueManager {
 
-    private final Map<String, IPipedProcessDataQueue<?>> dataQueues = new HashMap<>();
+    private final Map<String, IPipedProcessDataQueue> dataQueues = new HashMap<>();
 
-    public void registerDataQueue(String queueName) throws DataQueueException {
-        registerDataQueue(queueName, DEFAULT_CAPACITY);
+    public void registerDataQueue(String queueName, Class<?> elemClass) throws DataQueueException {
+        registerDataQueue(queueName, elemClass, DEFAULT_CAPACITY);
     }
 
-    public void registerDataQueue(String queueName, int capacity) throws DataQueueException {
+    public void registerDataQueue(String queueName, Class<?> elemClass, int capacity) throws DataQueueException {
         // Queue with this name should not exists
         synchronized (dataQueues) {
             validateDataQueueExistent(queueName, false);
-            dataQueues.put(queueName, new PipedProcessDataQueueImpl<>(capacity));
+            dataQueues.put(queueName, new PipedProcessDataQueueImpl(elemClass, capacity));
         }
     }
 
-    public IPipedProcessDataQueue<?> getDataQueue(String queueName) throws DataQueueException {
+    public IPipedProcessDataQueue getDataQueue(String queueName) throws DataQueueException {
         synchronized (dataQueues) {
             validateDataQueueExistent(queueName, true);
             return dataQueues.get(queueName);
