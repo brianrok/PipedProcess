@@ -46,4 +46,9 @@ public class PipedProcessDataQueueImpl implements IPipedProcessDataQueue {
             return queue.size() == 1 && !queue.peek().isPresent();
         }
     }
+
+    @Override
+    public Class<?> getElementType() {
+        return elemClass;
+    }
 }

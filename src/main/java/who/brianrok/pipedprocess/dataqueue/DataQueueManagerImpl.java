@@ -13,10 +13,12 @@ public class DataQueueManagerImpl implements IDataQueueManager {
 
     private final Map<String, IPipedProcessDataQueue> dataQueues = new HashMap<>();
 
+    @Override
     public void registerDataQueue(String queueName, Class<?> elemClass) throws DataQueueException {
         registerDataQueue(queueName, elemClass, DEFAULT_CAPACITY);
     }
 
+    @Override
     public void registerDataQueue(String queueName, Class<?> elemClass, int capacity) throws DataQueueException {
         // Queue with this name should not exists
         synchronized (dataQueues) {
@@ -25,6 +27,7 @@ public class DataQueueManagerImpl implements IDataQueueManager {
         }
     }
 
+    @Override
     public IPipedProcessDataQueue getDataQueue(String queueName) throws DataQueueException {
         synchronized (dataQueues) {
             validateDataQueueExistent(queueName, true);
@@ -32,6 +35,7 @@ public class DataQueueManagerImpl implements IDataQueueManager {
         }
     }
 
+    @Override
     public void removeDataQueue(String queueName) throws DataQueueException {
         synchronized (dataQueues) {
             validateDataQueueExistent(queueName, true);
@@ -42,6 +46,7 @@ public class DataQueueManagerImpl implements IDataQueueManager {
         }
     }
 
+    @Override
     public Set<String> getAllQueueNames() {
         synchronized (dataQueues) {
             return dataQueues.keySet();

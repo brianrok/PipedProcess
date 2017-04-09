@@ -38,4 +38,10 @@ public interface IPipedProcessDataQueue {
      * @return Finished
      */
     boolean isFinished();
+
+    /**
+     * Get the type of elements
+     * @return Tyoe of elements
+     */
+    Class<?> getElementType();
 }
