@@ -7,15 +7,11 @@ public class PipedProcessDescriptionTest {
 
     private PipedProcessDescription description = new PipedProcessDescription();
 
-    @Test (expected = PipedProcessWorkflowException.class)
-    public void testAddQueue() {
-        description.addQueue("test", Object.class);
-        description.addQueue("test", Object.class);
+    @Test
+    public void testNormalCase() {
+        NormalHandlerObj handler = new NormalHandlerObj();
+        description.register(handler);
     }
 
-    @Test (expected = PipedProcessWorkflowException.class)
-    public void testRegisterSubProcess() {
-        description.registerSubProcess("test", null, null);
-        description.registerSubProcess("test", null, null);
-    }
 }
+
