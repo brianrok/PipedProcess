@@ -4,15 +4,18 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import who.brianrok.pipedprocess.annotation.PipedProcessHandler;
 import who.brianrok.pipedprocess.dataqueue.IDataQueueManager;
 import who.brianrok.pipedprocess.exception.PipedProcessWorkflowException;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Description of process
@@ -35,13 +38,63 @@ public class PipedProcessDescription {
         }
         while (clazz != Object.class) {
             Arrays.stream(clazz.getDeclaredMethods()).filter(method -> Modifier.isPublic(method.getModifiers()))
-                    .filter(this::isValidHandlerMethod).forEach(method -> doProcessMethod(handlerObj, method));
+                    .filter(method -> method.isAnnotationPresent(PipedProcessHandler.class))
+                    .forEach(method -> doProcessMethod(handlerObj, method));
             clazz = clazz.getSuperclass();
         }
         validate();
     }
 
     private void validate() throws PipedProcessWorkflowException {
+        Set<String> queueNameSet = dataQueues.keySet();
+        Supplier<Stream<Pair<String, String>>> supStream = () -> subProcesses.values().stream()
+                .filter(subProcessInfo -> StringUtils.isNotEmpty(subProcessInfo.getInQueue())
+                        && StringUtils.isNotEmpty(subProcessInfo.getOutQueue()))
+                .map(subProcessInfo -> ImmutablePair.of(subProcessInfo.getInQueue(), subProcessInfo.getOutQueue()));
+        Map<String, List<String>> inTake = supStream.get().collect(
+                Collectors.groupingBy(Pair::getRight, Collectors.mapping(Pair::getLeft, Collectors.toList())));
+        Map<String, List<String>> outGoing = supStream.get().collect(
+                Collectors.groupingBy(Pair::getLeft, Collectors.mapping(Pair::getRight, Collectors.toList())));
+
+        // All queues should have at least one process attached
+        Set<String> queueWithoutProcess = queueNameSet.stream().filter(queueName -> !inTake.containsKey(queueName)
+                && !outGoing.containsKey(queueName)).collect(Collectors.toSet());
+        if (queueWithoutProcess.size() > 0) {
+            throw new PipedProcessWorkflowException(String.format("Data queue(s) %s do not have process attached!",
+                    String.join(",", queueWithoutProcess)));
+        }
+
+        // All queue should only have one incoming process
+        Set<String> queueWithMultiIncoming = inTake.entrySet().stream().filter(entry -> entry.getValue().size() > 1)
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
+        if (queueWithMultiIncoming.size() > 0) {
+            throw new PipedProcessWorkflowException(String.format("Data queue(s) %s have multiple incoming.",
+                    String.join(",", queueWithMultiIncoming)));
+        }
+
+        // FIXME: support multiple out going in the future
+        Set<String> queueWithMultiOutGoing = outGoing.entrySet().stream().filter(entry -> entry.getValue().size() > 1)
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
+        if (queueWithMultiOutGoing.size() > 0) {
+            throw new PipedProcessWorkflowException(String.format("Data queue(s) %s have multiple outgoing.",
+                    String.join(",", queueWithMultiOutGoing)));
+        }
+
+        // The process should not contains a loop
+        Queue<String> noIncoming = new LinkedList<>();
+        noIncoming.addAll(outGoing.keySet().stream().filter(name -> !inTake.containsKey(name))
+                .collect(Collectors.toSet()));
+        while(!noIncoming.isEmpty()) {
+            String queueName = noIncoming.poll();
+            List<String> targetQueues = outGoing.get(queueName);
+            outGoing.remove(queueName);
+            targetQueues.forEach(inTake::remove);
+            noIncoming.addAll(outGoing.keySet().stream().filter(name -> !inTake.containsKey(name))
+                    .collect(Collectors.toSet()));
+        }
+        if (inTake.size() > 0) {
+            throw new PipedProcessWorkflowException("There is a loop exists in the process!");
+        }
     }
 
     /**
@@ -103,34 +156,27 @@ public class PipedProcessDescription {
         }
     }
 
-    private boolean isValidHandlerMethod(Method method) {
-        // Handler method should contains annotation PipedProcessHandler
-        if (!method.isAnnotationPresent(PipedProcessHandler.class)) {
-            return false;
-        }
-
+    private void validateHandlerMethod(Method method) {
         PipedProcessHandler annotation = method.getAnnotation(PipedProcessHandler.class);
-
-        // Process name should not be empty
-        if (StringUtils.isEmpty(annotation.process())) {
-            return false;
-        }
 
         // If no input queue, there should be no parameter in this method
         if (StringUtils.isEmpty(annotation.inputQueue()) && method.getParameterCount() > 0) {
-            return false;
+            throw new PipedProcessWorkflowException(String.format("Method %s should not contain any parameter if there is not input queue.", method.getName()));
         }
 
         // If input queue exists, there should be only one parameter in this method
         if (StringUtils.isNotEmpty(annotation.inputQueue()) && method.getParameterCount() != 1) {
-            return false;
+            throw new PipedProcessWorkflowException(String.format("Method %s should not contain only one parameter.", method.getName()));
         }
 
         // If output queue exists, the return type should not be void
-        return !(StringUtils.isNotEmpty(annotation.outputQueue()) && Void.TYPE.equals(method.getReturnType()));
+        if (StringUtils.isNotEmpty(annotation.outputQueue()) && Void.TYPE.equals(method.getReturnType())) {
+            throw new PipedProcessWorkflowException(String.format("Return type should not be void if output queue is defined for method %s", method.getName()));
+        }
     }
 
     private void doProcessMethod(Object handlerObj, Method method) throws PipedProcessWorkflowException {
+        validateHandlerMethod(method);
         PipedProcessHandler annotation = method.getAnnotation(PipedProcessHandler.class);
         if (StringUtils.isNotEmpty(annotation.inputQueue())) {
             addQueue(annotation.inputQueue(), method.getParameterTypes()[0]);

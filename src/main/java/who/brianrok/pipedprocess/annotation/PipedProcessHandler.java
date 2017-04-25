@@ -11,7 +11,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface PipedProcessHandler {
-    String process() default EMPTY;
+    String process();
     String inputQueue() default EMPTY;
     String outputQueue() default EMPTY;
     int runnerCount() default 1;
