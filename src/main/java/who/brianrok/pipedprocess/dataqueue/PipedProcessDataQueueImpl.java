@@ -28,9 +28,8 @@ public class PipedProcessDataQueueImpl implements IPipedProcessDataQueue {
     }
 
     @Override
-    public Object take() throws InterruptedException {
-        Optional<?> elemOptional = queue.take();
-        return elemClass.cast(elemOptional.orElse(null));
+    public Optional<?> take() throws InterruptedException {
+        return queue.take();
     }
 
     @Override

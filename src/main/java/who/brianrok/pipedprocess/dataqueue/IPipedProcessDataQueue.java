@@ -19,7 +19,7 @@ public interface IPipedProcessDataQueue {
      * @return First element in the queue
      * @throws InterruptedException
      */
-    Object take() throws InterruptedException;
+    Optional<?> take() throws InterruptedException;
 
     /**
      * Get the remaining capacity of the queue
